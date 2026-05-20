@@ -48,4 +48,18 @@ async def require_admin(current_user: User = Depends(get_current_user)) -> User:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="admin privileges required",
         )
+    if current_user.company_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="admin must belong to a company",
+        )
+    return current_user
+
+
+async def require_owner(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role != UserRole.owner:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="owner privileges required",
+        )
     return current_user

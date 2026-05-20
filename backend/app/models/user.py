@@ -8,8 +8,9 @@ from sqlmodel import Field, SQLModel
 
 
 class UserRole(str, Enum):
-    employee = "employee"
+    owner = "owner"
     admin = "admin"
+    employee = "employee"
 
 
 class User(SQLModel, table=True):
@@ -17,7 +18,9 @@ class User(SQLModel, table=True):
     __table_args__ = (UniqueConstraint("company_id", "email", name="uq_users_company_email"),)
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    company_id: UUID = Field(foreign_key="companies.id", index=True, nullable=False)
+    company_id: UUID | None = Field(
+        default=None, foreign_key="companies.id", index=True, nullable=True
+    )
     email: str = Field(nullable=False, max_length=255, index=True)
     hashed_password: str = Field(nullable=False, max_length=255)
     full_name: str = Field(nullable=False, max_length=255)

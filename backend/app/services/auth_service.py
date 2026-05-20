@@ -24,12 +24,14 @@ def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
 
 
-def create_access_token(user_id: UUID, company_id: UUID, role: str) -> tuple[str, int]:
+def create_access_token(
+    user_id: UUID, company_id: UUID | None, role: str
+) -> tuple[str, int]:
     expires_in = settings.jwt_expire_minutes * 60
     expire = datetime.now(timezone.utc) + timedelta(minutes=settings.jwt_expire_minutes)
     payload: dict[str, Any] = {
         "sub": str(user_id),
-        "company_id": str(company_id),
+        "company_id": str(company_id) if company_id else None,
         "role": role,
         "exp": expire,
         "iat": datetime.now(timezone.utc),
@@ -57,6 +59,16 @@ async def get_user_by_email_any_company(db: AsyncSession, email: str) -> User | 
     stmt = select(User).where(User.email == email)
     result = await db.execute(stmt)
     return result.scalars().first()
+
+
+async def get_owner_by_email(db: AsyncSession, email: str) -> User | None:
+    stmt = select(User).where(
+        User.email == email,
+        User.company_id.is_(None),
+        User.role == UserRole.owner,
+    )
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
 
 
 async def get_user_by_id(db: AsyncSession, user_id: UUID) -> User | None:
@@ -96,7 +108,9 @@ async def register_company_and_admin(
 
 
 async def authenticate(db: AsyncSession, email: str, password: str) -> User | None:
-    user = await get_user_by_email_any_company(db, email.lower())
+    normalized = email.lower()
+    owner = await get_owner_by_email(db, normalized)
+    user = owner or await get_user_by_email_any_company(db, normalized)
     if user is None or not user.is_active:
         return None
     if not verify_password(password, user.hashed_password):
