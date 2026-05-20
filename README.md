@@ -8,7 +8,7 @@ A platform **owner** role sits above all companies and can provision new ones fr
 
 | Layer       | Technology                                                   |
 | ----------- | ------------------------------------------------------------ |
-| Backend     | Python 3.12 · FastAPI · SQLModel · Alembic · Pydantic v2     |
+| Backend     | Python 3.12 · uv · FastAPI · SQLModel · Alembic · Pydantic v2 |
 | Auth        | JWT (python-jose) · bcrypt (passlib)                         |
 | Database    | PostgreSQL 16 · asyncpg                                      |
 | Cache       | Redis 7                                                      |
@@ -23,7 +23,8 @@ kronos/
 ├── .env.example
 ├── backend/
 │   ├── Dockerfile
-│   ├── requirements.txt
+│   ├── pyproject.toml          # managed with uv
+│   ├── uv.lock                 # generated on first `uv sync`
 │   ├── alembic.ini
 │   ├── alembic/
 │   │   ├── env.py
@@ -182,6 +183,22 @@ created_at      hashed_password│           clocked_in_at   │
 ```
 
 ## Local development tips
+
+### Python dependencies (uv)
+
+The backend is managed with [uv](https://docs.astral.sh/uv/). Inside the `backend/` directory:
+
+```bash
+uv sync                          # install deps into .venv
+uv add some-package              # add a runtime dependency
+uv add --dev pytest              # add a dev-only dependency
+uv lock --upgrade                # refresh the lock file
+uv run uvicorn app.main:app --reload   # run a command in the project env
+```
+
+The Docker image installs deps into `/opt/venv` (outside the bind-mount) and puts it on `PATH`, so `uvicorn`, `alembic`, and `python` work directly inside the container.
+
+### Other tips
 
 - Hot reload is enabled on both services (uvicorn `--reload`, Next.js `dev`).
 - The API container runs `alembic upgrade head` on every start.
