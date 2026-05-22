@@ -12,3 +12,4 @@ class CompanyRead(BaseModel):
     name: str
     slug: str
     created_at: datetime
+    frozen: bool
