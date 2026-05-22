@@ -117,3 +117,23 @@ async def create_owner(
     await db.commit()
     await db.refresh(owner)
     return owner
+
+async def get_frozen_company_ids(db) -> set:
+    result = await db.execute(
+        "SELECT id FROM companies WHERE frozen = true"
+    )
+    return {row[0] for row in result.fetchall()}
+
+async def freeze_company(db, company_id):
+    await db.execute(
+        "UPDATE companies SET frozen = true WHERE id = :company_id",
+        {"company_id": company_id},
+    )
+    await db.commit()
+
+async def unfreeze_company(db, company_id):
+    await db.execute(
+        "UPDATE companies SET frozen = false WHERE id = :company_id",
+        {"company_id": company_id},
+    )
+    await db.commit()

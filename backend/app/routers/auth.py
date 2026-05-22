@@ -4,7 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.models.user import User
+from app.models.user import User, UserRole
+from app.models.company import Company
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
 from app.schemas.user import UserRead
 from app.services.auth_service import (
@@ -34,6 +35,14 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)) -> To
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="invalid email or password",
         )
+    if user.company_id and user.role == UserRole.admin:
+        company = await db.get(Company, user.company_id)
+        if company and company.frozen:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="company is frozen",
+            )
+
     token, expires_in = create_access_token(user.id, user.company_id, user.role.value)
     return TokenResponse(access_token=token, expires_in=expires_in)
 
