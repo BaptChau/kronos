@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = Field(default=1440, alias="JWT_EXPIRE_MINUTES")
 
     cors_origins: str = Field(default="http://localhost:3000", alias="CORS_ORIGINS")
+    app_env: str = Field(default="production", alias="APP_ENV")
 
     @property
     def cors_origins_list(self) -> list[str]:

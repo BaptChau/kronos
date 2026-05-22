@@ -49,12 +49,14 @@ services:
       JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
       JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-1440}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:3001}
+      APP_ENV: ${APP_ENV:-dev}
     ports:
       - "8000:8000"
     volumes:
       - ./backend:/app
     command: >
       sh -c "alembic upgrade head &&
+             if [ \"$$APP_ENV\" = 'dev' ]; then python -m scripts.seed; fi &&
              uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
   frontend:
