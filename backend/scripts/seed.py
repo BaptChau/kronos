@@ -39,12 +39,13 @@ async def get_or_create_owner(session, email: str, full_name: str, password: str
     return user
 
 
-async def get_or_create_company(session, name: str, slug: str) -> Company:
+async def get_or_create_company(session, name: str, slug: str, frozen: bool) -> Company:
     result = await session.execute(select(Company).where(Company.slug == slug))
     company = result.scalar_one_or_none()
     if company:
+        company.frozen = frozen  # Update frozen status if company already exists
         return company
-    company = Company(name=name, slug=slug)
+    company = Company(name=name, slug=slug, frozen=frozen)
     session.add(company)
     await session.flush()
     print(f"  created company: {slug}")
@@ -86,7 +87,7 @@ async def seed_time_entries(session, user: User, company: Company) -> None:
             company_id=company.id,
             clocked_in_at=now - timedelta(days=i, hours=8),
             clocked_out_at=now - timedelta(days=i),
-            duration_minutes=range(420, 480),
+            duration_minutes=420 + (i * 20) % 60,
             note=f"Dev fixture — day -{i}",
         )
         for i in range(1, 4)
@@ -105,8 +106,8 @@ async def seed() -> None:
             password="password",
         )
 
-        for company_name, slug in [("Acme Corp", "acme"), ("TechCorp", "techcorp")]:
-            company = await get_or_create_company(session, company_name, slug)
+        for company_name, slug, frozen in [("Acme Corp", "acme", False), ("TechCorp", "techcorp", False), ("Frozen Inc", "frozen", True)]:
+            company = await get_or_create_company(session, company_name, slug, frozen)
 
             admin = await get_or_create_user(
                 session, company,

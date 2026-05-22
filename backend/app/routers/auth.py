@@ -40,7 +40,7 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)) -> To
         if company and company.frozen:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="company is frozen",
+                detail="company is frozen please contact support",
             )
 
     token, expires_in = create_access_token(user.id, user.company_id, user.role.value)
