@@ -32,7 +32,8 @@ kronos/
 │   │       ├── 0001_initial.py
 │   │       └── 0002_owner_role.py
 │   ├── scripts/
-│   │   └── create_owner.py    # bootstrap the first platform owner
+│   │   ├── create_owner.py    # bootstrap the first platform owner
+│   │   └── seed.py            # dev fixture loader (runs on boot when APP_ENV=dev)
 │   └── app/
 │       ├── main.py
 │       ├── config.py
@@ -108,6 +109,7 @@ Then open `http://localhost:3001`, sign in with those credentials, and use **New
 | `JWT_EXPIRE_MINUTES`    | Access token lifetime                            | `1440`                   |
 | `CORS_ORIGINS`          | Comma-separated allowed origins                  | `http://localhost:3000,http://localhost:3001` |
 | `NEXT_PUBLIC_API_URL`   | API base URL used by the frontend                | `http://localhost:8000`  |
+| `APP_ENV`               | Set to `production` to skip dev seed on boot     | `dev`                    |
 
 ## API reference
 
@@ -216,6 +218,47 @@ The Docker image installs deps into `/opt/venv` (outside the bind-mount) and put
   docker compose down -v
   docker compose up --build
   ```
+
+## Dev fixtures
+
+When `APP_ENV=dev` (the default in `docker-compose.yml`), the API container automatically seeds the database with ready-to-use accounts after running migrations. The seed is idempotent — restarting the stack never duplicates data.
+
+### Accounts
+
+| Role     | Email                    | Password   | Company    |
+| -------- | ------------------------ | ---------- | ---------- |
+| Owner    | `owner@kronos.dev`       | `password` | —          |
+| Admin    | `admin@acme.dev`         | `password` | Acme Corp  |
+| Employee | `employee1@acme.dev`     | `password` | Acme Corp  |
+| Employee | `employee2@acme.dev`     | `password` | Acme Corp  |
+| Admin    | `admin@techcorp.dev`     | `password` | TechCorp   |
+| Employee | `employee1@techcorp.dev` | `password` | TechCorp   |
+| Employee | `employee2@techcorp.dev` | `password` | TechCorp   |
+
+Each employee also has 3 past time entries (8 h/day for the last 3 days) so timesheets and summaries are populated out of the box.
+
+### Where to log in
+
+| App                    | URL                       | Accounts to use               |
+| ---------------------- | ------------------------- | ----------------------------- |
+| Employee / admin app   | http://localhost:3000     | `admin@*.dev`, `employee*@*.dev` |
+| Platform owner console | http://localhost:3001     | `owner@kronos.dev`            |
+| Interactive API docs   | http://localhost:8000/docs | any                          |
+
+### Disabling the seed
+
+Set `APP_ENV=production` in your `.env` (or shell) before running `docker compose up` and the seed step is skipped entirely.
+
+```bash
+APP_ENV=production docker compose up
+```
+
+### Re-seeding from scratch
+
+```bash
+docker compose down -v   # wipe the postgres volume
+docker compose up        # migrations + seed run again
+```
 
 ## Out of scope for this MVP
 
