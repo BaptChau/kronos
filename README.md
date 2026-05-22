@@ -200,6 +200,22 @@ uv run uvicorn app.main:app --reload   # run a command in the project env
 
 The Docker image installs deps into `/opt/venv` (outside the bind-mount) and puts it on `PATH`, so `uvicorn`, `alembic`, and `python` work directly inside the container.
 
+### IDE import resolution
+
+The backend runs in Docker (Python 3.12), but your IDE needs a local interpreter to resolve imports. Run once from `backend/`:
+
+```bash
+uv venv --python 3.12   # match the Docker Python version
+uv sync
+```
+
+Then point your IDE at the generated `.venv`:
+
+- **VS Code** — `Cmd+Shift+P` → *Python: Select Interpreter* → choose `backend/.venv/bin/python`
+- **PyCharm** — Settings → Python Interpreter → add `backend/.venv/bin/python`
+
+> Use Python 3.12, not 3.13/3.14 — `psycopg2-binary` does not have pre-built wheels for newer versions and will fail to build from source unless PostgreSQL client libs are installed.
+
 ### Other tips
 
 - Hot reload is enabled on both services (uvicorn `--reload`, Next.js `dev`).

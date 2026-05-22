@@ -16,3 +16,4 @@ class Company(SQLModel, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
+    frozen: bool = Field(default=False, nullable=False)
