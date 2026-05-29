@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, require_active_company
 from app.models.user import User
 from app.schemas.time_entry import (
     ClockInRequest,
@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api/v1/clock", tags=["clock"])
 @router.post("/in", response_model=TimeEntryRead, status_code=status.HTTP_201_CREATED)
 async def post_clock_in(
     payload: ClockInRequest | None = None,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_active_company),
     db: AsyncSession = Depends(get_db),
 ) -> TimeEntryRead:
     note = payload.note if payload else None
@@ -33,7 +33,7 @@ async def post_clock_in(
 @router.post("/out", response_model=TimeEntryRead)
 async def post_clock_out(
     payload: ClockOutRequest | None = None,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_active_company),
     db: AsyncSession = Depends(get_db),
 ) -> TimeEntryRead:
     note = payload.note if payload else None
