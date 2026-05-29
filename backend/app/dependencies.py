@@ -6,6 +6,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.models.company import Company
 from app.models.user import User, UserRole
 from app.services.auth_service import decode_access_token, get_user_by_id
 
@@ -63,3 +64,32 @@ async def require_owner(current_user: User = Depends(get_current_user)) -> User:
             detail="owner privileges required",
         )
     return current_user
+
+
+async def require_active_company(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    # Platform owners are not tied to a company and are not subject to the lock.
+    if current_user.company_id is None:
+        return current_user
+    company = await db.get(Company, current_user.company_id)
+    if company is None or company.frozen:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="company is locked",
+        )
+    return current_user
+
+
+async def require_active_admin(
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    company = await db.get(Company, admin.company_id)
+    if company is None or company.frozen:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="company is locked",
+        )
+    return admin

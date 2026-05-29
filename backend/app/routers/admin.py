@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import require_admin
+from app.dependencies import require_active_admin, require_admin
 from app.models.user import User
 from app.schemas.time_entry import TimeEntryRead, TimeEntryUpdate, WeeklySummary
 from app.schemas.user import UserCreate, UserRead, UserWithStatus
@@ -55,7 +55,7 @@ async def list_users(
 @router.post("/users", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 async def create_user(
     payload: UserCreate,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_active_admin),
     db: AsyncSession = Depends(get_db),
 ) -> UserRead:
     existing = await get_user_by_email_and_company(
@@ -130,7 +130,7 @@ async def user_summary(
 async def patch_entry(
     entry_id: UUID,
     payload: TimeEntryUpdate,
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_active_admin),
     db: AsyncSession = Depends(get_db),
 ) -> TimeEntryRead:
     entry = await get_entry(db, entry_id, admin.company_id)
