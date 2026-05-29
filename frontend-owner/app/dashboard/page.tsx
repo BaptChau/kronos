@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
 import { api, ApiError, Company, User } from "@/lib/api";
-import { clearToken, getToken } from "@/lib/auth";
+import { logout as serverLogout } from "@/lib/auth";
 
 export default function OwnerDashboardPage() {
   const router = useRouter();
@@ -15,13 +15,13 @@ export default function OwnerDashboardPage() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Company | null>(null);
 
+  const meQuery = useQuery({ queryKey: ["owner-me"], queryFn: () => api.me() });
+
   useEffect(() => {
-    if (!getToken()) {
+    if (meQuery.error instanceof ApiError && meQuery.error.status === 401) {
       router.replace("/login");
     }
-  }, [router]);
-
-  const meQuery = useQuery({ queryKey: ["owner-me"], queryFn: () => api.me() });
+  }, [meQuery.error, router]);
   const companiesQuery = useQuery({
     queryKey: ["owner-companies"],
     queryFn: () => api.listCompanies(),
@@ -39,8 +39,8 @@ export default function OwnerDashboardPage() {
     },
   });
 
-  function logout() {
-    clearToken();
+  async function logout() {
+    await serverLogout();
     router.replace("/login");
   }
 

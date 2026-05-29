@@ -8,20 +8,20 @@ import { useEffect, useState } from "react";
 import { ClockButton } from "@/components/ClockButton";
 import { TimesheetTable } from "@/components/TimesheetTable";
 import { WeeklySummary } from "@/components/WeeklySummary";
-import { api } from "@/lib/api";
-import { clearToken, getToken, isoWeek, shiftIsoWeek } from "@/lib/auth";
+import { api, ApiError } from "@/lib/api";
+import { isoWeek, logout as serverLogout, shiftIsoWeek } from "@/lib/auth";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [week, setWeek] = useState(() => isoWeek());
 
+  const meQuery = useQuery({ queryKey: ["me"], queryFn: () => api.me() });
+
   useEffect(() => {
-    if (!getToken()) {
+    if (meQuery.error instanceof ApiError && meQuery.error.status === 401) {
       router.replace("/login");
     }
-  }, [router]);
-
-  const meQuery = useQuery({ queryKey: ["me"], queryFn: () => api.me() });
+  }, [meQuery.error, router]);
   const entriesQuery = useQuery({
     queryKey: ["my-entries", week],
     queryFn: () => api.myEntries(week),
@@ -31,8 +31,8 @@ export default function DashboardPage() {
     queryFn: () => api.mySummary(week),
   });
 
-  function logout() {
-    clearToken();
+  async function logout() {
+    await serverLogout();
     router.replace("/login");
   }
 

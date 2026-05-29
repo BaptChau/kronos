@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
-import { clearToken, getToken } from "@/lib/auth";
+import { logout as serverLogout } from "@/lib/auth";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -15,14 +15,14 @@ export default function AdminPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!getToken()) {
-      router.replace("/login");
-    }
-  }, [router]);
-
   const meQuery = useQuery({ queryKey: ["me"], queryFn: () => api.me() });
   const usersQuery = useQuery({ queryKey: ["admin-users"], queryFn: () => api.listUsers() });
+
+  useEffect(() => {
+    if (meQuery.error instanceof ApiError && meQuery.error.status === 401) {
+      router.replace("/login");
+    }
+  }, [meQuery.error, router]);
 
   const createMutation = useMutation({
     mutationFn: api.createUser,
@@ -36,8 +36,8 @@ export default function AdminPage() {
     },
   });
 
-  function logout() {
-    clearToken();
+  async function logout() {
+    await serverLogout();
     router.replace("/login");
   }
 

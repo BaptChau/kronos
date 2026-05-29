@@ -1,19 +1,13 @@
 // frontend-owner/lib/auth.ts
-const TOKEN_KEY = "kronos.owner.token";
+//
+// Auth state lives in an httpOnly cookie set by the backend.
+// Call logout() to ask the server to clear it.
+import { api } from "./api";
 
-export function getToken(): string | null {
-  if (typeof window === "undefined") {
-    return null;
+export async function logout(): Promise<void> {
+  try {
+    await api.logout();
+  } catch {
+    // best-effort
   }
-  return window.localStorage.getItem(TOKEN_KEY);
-}
-
-export function setToken(token: string): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(TOKEN_KEY, token);
-}
-
-export function clearToken(): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(TOKEN_KEY);
 }
