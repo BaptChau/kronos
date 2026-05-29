@@ -30,6 +30,9 @@ class Settings(BaseSettings):
                 "JWT_SECRET_KEY is set to a placeholder. Generate one with "
                 "`openssl rand -hex 32` before booting in production."
             )
+        return self
+
+    @model_validator(mode="after")
     def _require_https_cors_origins_in_prod(self) -> "Settings":
         if self.app_env != "production":
             return self
