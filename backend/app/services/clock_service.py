@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.time_entry import TimeEntry
@@ -42,7 +43,13 @@ async def clock_in(
         note=note,
     )
     db.add(entry)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        # uq_open_entry_per_user partial unique index closes the
+        # TOCTOU window between get_open_entry and commit.
+        await db.rollback()
+        raise ClockError("user already has an open time entry") from exc
     await db.refresh(entry)
     return entry
 
