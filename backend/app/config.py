@@ -1,7 +1,7 @@
 # backend/app/config.py
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,6 +28,17 @@ class Settings(BaseSettings):
 
     cors_origins: str = Field(default="http://localhost:3000", alias="CORS_ORIGINS")
     app_env: str = Field(default="production", alias="APP_ENV")
+
+    @model_validator(mode="after")
+    def _require_https_cors_origins_in_prod(self) -> "Settings":
+        if self.app_env != "production":
+            return self
+        for origin in self.cors_origins_list:
+            if origin.lower().startswith("http://"):
+                raise ValueError(
+                    f"CORS_ORIGINS contains a non-HTTPS origin in production: {origin!r}"
+                )
+        return self
 
     @property
     def cors_origins_list(self) -> list[str]:
