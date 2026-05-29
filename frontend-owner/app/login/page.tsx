@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
-import { clearToken, setToken } from "@/lib/auth";
+import { logout as serverLogout } from "@/lib/auth";
 
 export default function OwnerLoginPage() {
   const router = useRouter();
@@ -19,11 +19,10 @@ export default function OwnerLoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const res = await api.login(email, password);
-      setToken(res.access_token);
-      const user = await api.me();
+      const user = await api.login(email, password);
       if (user.role !== "owner") {
-        clearToken();
+        // login set the cookie for a non-owner account; ask the server to clear it.
+        await serverLogout();
         setError("this account is not a platform owner");
         return;
       }

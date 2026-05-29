@@ -1,6 +1,4 @@
 // frontend/lib/api.ts
-import { getToken, clearToken } from "./auth";
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export class ApiError extends Error {
@@ -16,22 +14,14 @@ export class ApiError extends Error {
 type RequestOptions = {
   method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   body?: unknown;
-  auth?: boolean;
   query?: Record<string, string | number | undefined>;
 };
 
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, auth = true, query } = options;
+  const { method = "GET", body, query } = options;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-
-  if (auth) {
-    const token = getToken();
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-  }
 
   let url = `${API_URL}${path}`;
   if (query) {
@@ -52,6 +42,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
     cache: "no-store",
+    credentials: "include",
   });
 
   let payload: unknown = null;
@@ -65,9 +56,6 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   }
 
   if (!response.ok) {
-    if (response.status === 401 && typeof window !== "undefined") {
-      clearToken();
-    }
     const detail =
       payload && typeof payload === "object" && "detail" in payload
         ? String((payload as { detail: unknown }).detail)
@@ -111,18 +99,11 @@ export type UserWithStatus = User & {
   current_clock_in: string | null;
 };
 
-export type TokenResponse = {
-  access_token: string;
-  token_type: string;
-  expires_in: number;
-};
-
 export const api = {
   login: (email: string, password: string) =>
-    apiFetch<TokenResponse>("/api/v1/auth/login", {
+    apiFetch<User>("/api/v1/auth/login", {
       method: "POST",
       body: { email, password },
-      auth: false,
     }),
   register: (payload: {
     company_name: string;
@@ -131,10 +112,13 @@ export const api = {
     admin_password: string;
     admin_full_name: string;
   }) =>
-    apiFetch<TokenResponse>("/api/v1/auth/register", {
+    apiFetch<User>("/api/v1/auth/register", {
       method: "POST",
       body: payload,
-      auth: false,
+    }),
+  logout: () =>
+    apiFetch<null>("/api/v1/auth/logout", {
+      method: "POST",
     }),
   me: () => apiFetch<User>("/api/v1/auth/me"),
 

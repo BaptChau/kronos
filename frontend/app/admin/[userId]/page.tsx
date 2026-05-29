@@ -8,8 +8,8 @@ import { useEffect, useState } from "react";
 
 import { TimesheetTable } from "@/components/TimesheetTable";
 import { WeeklySummary } from "@/components/WeeklySummary";
-import { api } from "@/lib/api";
-import { getToken, isoWeek, shiftIsoWeek } from "@/lib/auth";
+import { api, ApiError } from "@/lib/api";
+import { isoWeek, shiftIsoWeek } from "@/lib/auth";
 
 export default function UserTimesheetPage() {
   const params = useParams<{ userId: string }>();
@@ -18,16 +18,16 @@ export default function UserTimesheetPage() {
   const queryClient = useQueryClient();
   const [week, setWeek] = useState(() => isoWeek());
 
-  useEffect(() => {
-    if (!getToken()) {
-      router.replace("/login");
-    }
-  }, [router]);
-
   const usersQuery = useQuery({
     queryKey: ["admin-users"],
     queryFn: () => api.listUsers(),
   });
+
+  useEffect(() => {
+    if (usersQuery.error instanceof ApiError && usersQuery.error.status === 401) {
+      router.replace("/login");
+    }
+  }, [usersQuery.error, router]);
   const entriesQuery = useQuery({
     queryKey: ["admin-entries", userId, week],
     queryFn: () => api.userTimesheet(userId, week),

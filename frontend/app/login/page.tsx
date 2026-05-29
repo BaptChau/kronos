@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
-import { setToken } from "@/lib/auth";
 
 type Mode = "login" | "register";
 
@@ -25,20 +24,16 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      if (mode === "login") {
-        const res = await api.login(email, password);
-        setToken(res.access_token);
-      } else {
-        const res = await api.register({
-          company_name: companyName,
-          company_slug: companySlug,
-          admin_email: email,
-          admin_password: password,
-          admin_full_name: fullName,
-        });
-        setToken(res.access_token);
-      }
-      const user = await api.me();
+      const user =
+        mode === "login"
+          ? await api.login(email, password)
+          : await api.register({
+              company_name: companyName,
+              company_slug: companySlug,
+              admin_email: email,
+              admin_password: password,
+              admin_full_name: fullName,
+            });
       router.replace(user.role === "admin" ? "/admin" : "/dashboard");
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "unexpected error";
